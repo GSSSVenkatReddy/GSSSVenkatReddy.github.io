@@ -112,7 +112,7 @@
       const textOutput = document.getElementById('text-output');
 
       submitBtn.addEventListener('click', () => {
-        console.log("inside submit button event listener")
+        // console.log("inside submit button event listener")
         const question = textInput.value;
         if (question.trim() === '') {
           textOutput.value = "Please ask a question.";
@@ -134,7 +134,7 @@
         var trim_script = transcript.split(" ");
         trim_script = trim_script.filter(f => !stopwords.includes(f));
         var queryQues = a.get(trim_script.join(" "), null, 0.5);
-        console.log(queryQues);
+        // console.log(queryQues);
         getAnswer(queryQues);
       };
 
@@ -145,7 +145,7 @@
       voiceBtn.addEventListener('click', startSpeechRecognition);
 
       function getAnswer(question) {
-        console.log('inside getAnswer()');
+        // console.log('inside getAnswer()');
         
         if (question!=null) {
                 var mainkey = question[0][1].replace('speak ','');
@@ -156,8 +156,8 @@
                 });
                 //var key1 = answerarr.length>2? answerarr[1]:answerarr[0];
                 var key2 = mainkey;
-                console.log(key1 +'-'+ key2);
-                console.log(predicates[key1][key2]);
+                // console.log(key1 +'-'+ key2);
+                // console.log(predicates[key1][key2]);
                 
                 var data = {
                     'action': "getQuery",
@@ -165,7 +165,7 @@
                     'editor': editor
                 };
           
-          console.log(data) 
+          // console.log(data) 
           
           $.ajax({
           url: "https://cors-anywhere.herokuapp.com/http://wave.ttu.edu/ajax.php",
@@ -179,7 +179,7 @@
             editor: editor
           },
           success: function(response) {
-            console.log("response from server : "+response);
+            // console.log("response from server : "+response);
             const answer = response || 'Sorry, I could not find an answer.';
             textOutput.value = extractContent(response);
           },
