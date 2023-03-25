@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Graduate Advisor Agent</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="fuzzyset.js"></script>
+  </head>
+  <body>
+    <label id="input-label">Input : </label>
+    <button id="voice-input-btn"><i class="fa fa-microphone"></i></button>
+    <input type="text" id="text-input" placeholder="Type your question..." autocomplete="off">
+    <button id="submit-btn" class="button-style">Submit</button></body><br>
+    <label id="output-label">Output : </label>
+    <input type="text" id="text-output"> 
+
+    <script>
+      
+      var isClose=true;
+        const stopwords = ["of", "the", "a", "an", "any", "is", "can", "who", "what", "why", "whom"];
+        var editor = "sorts\n" +
+            "    #courseCode = {cs5368, cs3368}.\n" +
+            "    #courseTitle = {intelligentSystems, introductionToArtificialIntelligence}.\n" +
+            "    #classRoom = {holdenHall110, holdenHall112}.\n" +
+            "    #instructor = {zhang}.\n" +
+            "    #student = {sudha, sai, kiranmai, alekhya}.\n" +
+            "    #people = {zhang, sudha, sai, kiranmai, alekhya}.\n" +
+            "    #gender = {male, female}.\n" +
+            "predicates\n" +
+            "    courseCode(#courseCode, #courseTitle).\n" +
+            "    classRoomNumber(#classRoom, #courseCode).\n" +
+            "    registeredCourse(#courseCode, #student).\n" +
+            "    instructor(#instructor, #courseCode).\n" +
+            "    studentInstructor(#instructor, #student).\n" +
+            "    sameTitle(#courseCode, #courseCode).\n" +
+            "    gender(#gender, #people).\n" +
+            "rules\n" +
+            "    courseCode(cs5368, intelligentSystems).\n" +
+            "    courseCode(cs3368, introductionToArtificialIntelligence).\n" +
+            "    classRoomNumber(holdenHall110, cs5368).\n" +
+            "    classRoomNumber(holdenHall112, cs3368).\n" +
+            "    registeredCourse(cs5368, sudha).\n" +
+            "    instructor(zhang, cs5368).\n" +
+            "    instructor(zhang, cs3368).\n" +
+            "    studentInstructor(X, Y) :- instructor(X, Z) , registeredCourse(Z, Y).\n" +
+            "    sameTitle(X, Y) :- courseCode(X, Z) , courseCode(Y, Z).\n" +
+            "    gender(male, sudha).\n" +
+            "    gender(female, kiranmai).";
+        // sorts
+        var contstring = editor.split("sorts\n")[1].split("predicates\n");
+        var sortstring = contstring[0].split('.');
+        sortstring.splice(-1, 1);
+        var sorts = {};
+        sortstring = sortstring.map(d => d.replace(/\n/g, '').trim()).forEach(d => {
+            var par = d.split("=");
+            sorts[par[0].replace(/#/, '').trim()] = par[1].replace(/{|}/g, '').split(',').map(w => w.trim())
+        });
+        // predicates
+        var predicates = {};
+        contstring = contstring[1].split("rules\n");
+        sortstring = contstring[0].split('.');
+        sortstring.splice(-1, 1);
+        sortstring.forEach(d => {
+            var part = d.replace(/\n/g, '').trim().split('(');
+            var func = part[0];
+            predicates[func] = {};
+            var par = part[1].split(',').map(e => e.replace(/#|\)/g, '').trim());
+            var par1 = sorts[par[0]].slice();
+            par1.push("X");
+            par.splice(0, 1);
+            par1.forEach(e => {
+                var strinh = (e == 'X' ? '' : (e + ' ')) + func;
+                predicates[func][strinh] = func + "(" + e + ")";
+                par.forEach(par2 => {
+                    var temp = sorts[par2].slice();
+                    temp.push("X");
+                    temp.forEach(t => {
+                        var strinh = (e == 'X' ? '' : (e + ' ')) + func + (t == 'X' ? '' : (' ' + t));
+                        // if (strinh != fubnc)
+                        predicates[func][strinh] = func + "(" + e + "," + t + ")";
+                    })
+                });
+            });
+        });
+
+        var all_predicates = [];
+        for (var key1 in predicates) {
+            if (predicates.hasOwnProperty(key1)) {
+                for (var key2 in predicates[key1]) {
+                    if (predicates[key1].hasOwnProperty(key2))
+                        all_predicates.push(key2);
+                }
+            }
+
+        }
+        a = FuzzySet(all_predicates);
+      
+      // console.log(all_predicates)
+      
+      // Speech recognition API
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+
+      // Get DOM elements
+      const voiceBtn = document.getElementById('voice-input-btn');
+      const textInput = document.getElementById('text-input');
+      const submitBtn = document.getElementById('submit-btn');
+      const textOutput = document.getElementById('text-output');
+
+      submitBtn.addEventListener('click', () => {
+        console.log("inside submit button event listener")
+        const question = textInput.value;
+        if (question.trim() === '') {
+          textOutput.value = "Please ask a question.";
+          return;
+        }
+        var trim_script = question.split(" ");
+        trim_script = trim_script.filter(f => !stopwords.includes(f));
+        var queryQues = a.get(trim_script.join(" "), null, 0.5); 
+        getAnswer(queryQues);
+        
+      });
+
+      // Handle speech recognition
+      recognition.onresult = event => {
+        const resultIndex = event.resultIndex;
+        const transcript = event.results[resultIndex][0].transcript;
+        textInput.value = transcript;
+        
+        var trim_script = transcript.split(" ");
+        trim_script = trim_script.filter(f => !stopwords.includes(f));
+        var queryQues = a.get(trim_script.join(" "), null, 0.5);
+        console.log(queryQues);
+        getAnswer(queryQues);
+      };
+
+      // Handle click on voice input button     
+      function startSpeechRecognition() {
+        recognition.start();
+      }
+      voiceBtn.addEventListener('click', startSpeechRecognition);
+
+      function getAnswer(question) {
+        console.log('inside getAnswer()');
+        
+        if (question!=null) {
+                var mainkey = question[0][1].replace('speak ','');
+                var answerarr = mainkey.split(' ');
+                var key1 = '';
+                answerarr.forEach(d => {
+                    key1 = (predicates[d] != undefined) ? d : key1;
+                });
+                //var key1 = answerarr.length>2? answerarr[1]:answerarr[0];
+                var key2 = mainkey;
+                console.log(key1 +'-'+ key2);
+                console.log(predicates[key1][key2]);
+                
+                var data = {
+                    'action': "getQuery",
+                    'query': predicates[key1][key2],
+                    'editor': editor
+                };
+          
+          console.log(data) 
+          
+          $.ajax({
+          url: "https://cors-anywhere.herokuapp.com/http://wave.ttu.edu/ajax.php",
+          type: "POST",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest"
+          },
+          data: {
+            action: "getQuery",
+            query: predicates[key1][key2],
+            editor: editor
+          },
+          success: function(response) {
+            console.log("response from server : "+response);
+            const answer = response || 'Sorry, I could not find an answer.';
+            textOutput.value = extractContent(response);
+          },
+          error: function(xhr, status, error) {
+            console.log("error: " + error);
+          }
+          });
+        }
+      }
+        
+      function extractContent(s) {
+        var span = document.createElement('span');
+        span.innerHTML = s;
+        return lastWord(span.textContent || span.innerText);
+      }
+
+      function lastWord(words) {
+        var n = words.split(" ");
+        return n[n.length - 1];
+      }
+
+    </script>
+  </body>
+</html>

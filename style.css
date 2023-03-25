@@ -1,0 +1,42 @@
+#voice-input-btn {
+  background-color: #ed2e2e;
+  border: none;
+  color: white;
+  padding: 10px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 25px;
+  margin: 5px;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+button {
+  border: none;
+  background-color: green;
+  font-size: 25px;
+  color: white;
+  cursor: pointer;
+}
+
+button i.fa {
+  color: #ffffff;
+}
+
+#text-input,#text-output {
+  margin-top: 20px;
+  padding: 10px;
+  font-size: 20px;
+  width: 400px;
+}
+
+#input-label {
+  margin-right:10px;
+  font-size: 25px;
+}
+
+#output-label {
+  margin-right:44px;
+  font-size: 25px;
+}
